@@ -1,0 +1,14 @@
+# Keep the build context to just what the image needs.
+.git
+.gitignore
+.dockerignore
+Dockerfile
+README.md
+PROJECT_README.md
+tests/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
