@@ -1,2 +1,5 @@
 confluent-kafka>=2.3
 redis>=5.0
+# Bounded-memory, correct tail percentiles (p999/p9999) for the whole-run
+# summary. The aggregator falls back to an exact sorted-list digest if absent.
+hdrhistogram>=0.10.2

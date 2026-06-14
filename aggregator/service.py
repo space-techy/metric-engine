@@ -137,13 +137,15 @@ class Aggregator:
         summary = self.run_stats.finalize()
         self.coord.publish_summary(summary)
         log.info(
-            "run summary: %d orders, %d trades over %.1fs  (avg %.0f/s)\n"
-            "    p50=%.3fms  p90=%.3fms  p95=%.3fms  p99=%.3fms  p999=%.3fms\n"
+            "run summary (%s):\n"
+            "    %d orders, %d trades over %.1fs  (avg throughput %.0f/s)\n"
+            "    p50=%.3f  p99=%.3f  p999=%.3f  p9999=%.3f  max=%.3f  (ms)\n"
             "    error_rate=%.4f  bot-side errors excluded=%d",
+            summary["latency_metric"],
             summary["total_orders"], summary["total_trades"],
             summary["duration_s"], summary["throughput_avg"],
-            summary["p50_ms"], summary["p90_ms"], summary["p95_ms"],
-            summary["p99_ms"], summary["p999_ms"],
+            summary["p50_ms"], summary["p99_ms"], summary["p999_ms"],
+            summary["p9999_ms"], summary["max_ms"],
             summary["error_rate"], summary["bot_errors"],
         )
 

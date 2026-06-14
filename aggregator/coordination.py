@@ -30,7 +30,10 @@ log = logging.getLogger("aggregator.redis")
 
 # Status values that carry the same meaning under different spellings, so an
 # orchestrator written later has some slack in what it sets.
-START_VALUES = {"running", "started", "start"}
+# "testing" is the run-status the orchestrator sets during phase 5 (the value the
+# frontend/backend show); accepting it here lets the aggregator start without the
+# orchestrator having to write a second, redundant status value.
+START_VALUES = {"running", "started", "start", "testing"}
 ABORT_VALUES = {"stop", "stopped", "abort", "aborted", "failed", "cancelled", "kill"}
 DONE_VALUES = {"complete", "completed", "done", "finished"}
 

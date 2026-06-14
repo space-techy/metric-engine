@@ -6,6 +6,7 @@ from aggregator.metrics import (
     BOT_ERROR,
     ENGINE_ERROR,
     OK,
+    LatencyDigest,
     RunAccumulator,
     WindowAccumulator,
     classify_error,
@@ -116,7 +117,38 @@ def test_run_finalize_throughput_and_duration():
     assert summary["total_trades"] == 100
     assert summary["duration_s"] == pytest.approx(99 * 0.02)
     assert summary["throughput_avg"] == pytest.approx(100 / (99 * 0.02))
-    assert summary["p50_ms"] == pytest.approx(2.0)
+    # HdrHistogram (3 sig figs) quantizes within ~0.1%, so allow a small rel tol.
+    assert summary["p50_ms"] == pytest.approx(2.0, rel=2e-3)
+
+
+def test_run_summary_reports_full_tail_and_no_mean():
+    r = RunAccumulator()
+    # 1..1000 ms — a wide spread so the deep tail is meaningful.
+    for i in range(1, 1001):
+        r.add(i * 1_000_000, OK, trade_count=0, t_recv_ns=i)
+    summary = r.finalize()
+    for key in ("p50_ms", "p99_ms", "p999_ms", "p9999_ms", "max_ms"):
+        assert key in summary
+    # Tail percentiles must be ordered and bounded by the max observed sample.
+    assert summary["p50_ms"] <= summary["p99_ms"] <= summary["p999_ms"]
+    assert summary["p999_ms"] <= summary["p9999_ms"] <= summary["max_ms"]
+    assert summary["max_ms"] == pytest.approx(1000.0, rel=2e-3)
+    # The reported metric is labelled honestly and carries no latency mean.
+    assert "round-trip" in summary["latency_metric"]
+    assert not any("mean" in k or "avg_latency" in k for k in summary)
+
+
+def test_latency_digest_holds_full_population():
+    d = LatencyDigest()
+    for i in range(1, 101):
+        d.record(i * 1_000_000)  # 1..100 ms
+    assert d.count == 100
+    s = d.summary_ms()
+    assert s["p50_ms"] == pytest.approx(50.0, rel=5e-2)
+    assert s["max_ms"] == pytest.approx(100.0, rel=2e-3)
+    # A None sample is ignored (no latency on that response).
+    d.record(None)
+    assert d.count == 100
 
 
 def test_run_with_single_event_does_not_divide_by_zero():
