@@ -1,5 +1,10 @@
 # metric-engine — Live Metrics Aggregator
 
+> **Part of the [Quant-Force](https://github.com/space-techy/quant-force-infra)
+> platform** — the aggregator that measures latency the honest way
+> (coordinated-omission corrected, full-population HdrHistogram percentiles,
+> never a mean). See `docs/ARCHITECTURE.md` in the platform repo.
+
 Consumes `order_response` telemetry from Kafka, computes 1-second latency /
 throughput / error-rate windows, and publishes them to Redis for the
 leaderboard frontend. One aggregator process runs per contestant submission
