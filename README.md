@@ -13,6 +13,35 @@ leaderboard frontend. One aggregator process runs per contestant submission
 See [PROJECT_README.md](PROJECT_README.md) for how this fits into the overall
 benchmarking platform.
 
+## Why the latency numbers are trustworthy
+
+I measure **round-trip latency at the client** — from when an order was *due* to be
+sent to when its response came back. I can't put timers inside a contestant's engine
+(I don't control their code), so this client-side round trip is what's measurable
+from the outside. Because every engine is measured the same way — engine on a
+dedicated machine, bots on the platform pool, identical network hop — the numbers
+are **comparable across contestants**, which is what a ranking needs. Two choices
+make them honest rather than flattering:
+
+**1. Coordinated-omission correction — measure from when an order was *due*, not when
+it was sent.** Say the engine freezes for one second after order 50. The naive method
+(`response − actually_sent`) records *one* ~1000 ms sample, because orders 51–149
+never got sent (the bot was stuck waiting), then a pile of fast 2 ms replies once it
+recovers. The p99 looks great — and it's a lie; a real client trying to send those 99
+orders would have felt every bit of the stall. So I time each order from its
+**scheduled slot** (based on the target rate), which turns that frozen second into
+~99 samples near a second. This single correction is what separates a believable tail
+from a flattering one.
+
+**2. Never average percentiles.** The aggregator computes per-second windows for the
+live chart — but the final p99 is **not** the average of those windows. You can't
+average percentiles: `[1,1,1,1,100]` → p99 ≈ 100, the next second `[1,1,1,1,1]` →
+p99 ≈ 1, their average ≈ 50 — but the true p99 over all ten samples is 100; averaging
+threw the tail away. So the final summary percentiles are computed over the **whole
+run's samples at once** (a merged HdrHistogram that records every sample); the windows
+are only for the live readout. I report **p50 / p99 / p999 / p9999 / max — never an
+average** as a latency figure.
+
 ## How it works
 
 ```
